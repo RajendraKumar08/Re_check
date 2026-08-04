@@ -48,13 +48,14 @@ router.post("/register", async (req, res) => {
 
 router.post('/login', async (req, res) => {
     const {email, password} = req.body;
+    
     try {
         const token = await User.matchPasswordAndGenerateToken(email, password);
         const payload = validateToken(token);
         const user = await User.findById(payload._id).select("-password -salt")  
         return res.cookie("token", token, {
             httpOnly : true,
-            secure: true,
+            secure: true,   
             maxAge: 900000,
         }).json({
             message: "Login successfully",
