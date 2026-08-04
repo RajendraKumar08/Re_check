@@ -3,6 +3,7 @@ const express = require('express');
 const app = express();
 const mongoose = require('mongoose');
 const userRoute = require("./routes/user")
+const resumeRoute = require("./routes/resume")
 
 
 const PORT = 8000;
@@ -18,6 +19,7 @@ app.get('/', (req, res) => {
   res.json('Hello World!');
 });
 
+app.use('/api/resume', resumeRoute);
 app.use('/api/user', userRoute);
 
 

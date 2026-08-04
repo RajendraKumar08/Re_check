@@ -14,9 +14,9 @@ router.post("/register", async (req, res) => {
             });
         }
 
-        console.log("fullname", fullname);
-        console.log("email", email);
-        console.log("password", password);
+        // console.log("fullname", fullname);
+        // console.log("email", email);
+        // console.log("password", password);
 
         const user = await User.create({
             full_name : fullname,
