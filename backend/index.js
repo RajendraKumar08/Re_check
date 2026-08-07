@@ -3,8 +3,10 @@ const express = require('express');
 const app = express();
 const mongoose = require('mongoose');
 const userRoute = require("./routes/user")
-const resumeRoute = require("./routes/resume")
+const cors = require("cors");
 
+app.use(cors());
+app.use(express.json());
 
 const PORT = 8000;
 
