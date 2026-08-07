@@ -93,4 +93,15 @@ router.get('/me', async (req, res) => {
     }
 });
 
+router.post("/logout", (req, res) => {
+    res.clearCookie("token", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+    });
+
+    return res.json({
+        message: "Logout successfully",
+    });
+});
+
 module.exports = router;
