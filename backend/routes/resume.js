@@ -49,14 +49,15 @@ ${resumeText.text}
         input: prompt
     });
 
-    console.log("response from gemini", interaction);
+    // console.log("response from gemini", interaction);
 
     const response = interaction.output_text;
 
-    console.log("output text from response", response);
-    
+    // console.log("output text from response", response);
 
-    return res.json({ "message": "Hello form resume api" });
+    const result = JSON.parse(response);
+    console.log(result);
+    return res.json(result);
 })
 
 module.exports = router;

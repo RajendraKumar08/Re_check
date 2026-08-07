@@ -68,4 +68,29 @@ router.post('/login', async (req, res) => {
     }
 });
 
+router.get('/me', async (req, res) => {
+    try{
+        console.log("cookies", req.cookies)
+        const token = req.cookies.token;
+        console.log("token", token);
+        if(!token){
+            return res.status(401).json({
+                error: "Unauthorized"
+            })
+        }
+        const payload = validateToken(token);
+        if(!payload){
+            return res.status(401).json({
+                error: "Unauthorized"
+            })
+        }
+        const user = await User.findById(payload._id).select("-password -salt")
+        return res.json(user)
+    } catch(err){
+        return res.status(500).json({
+            error: err.message,
+        });
+    }
+});
+
 module.exports = router;
