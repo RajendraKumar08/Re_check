@@ -5,7 +5,6 @@ const mongoose = require('mongoose');
 const userRoute = require("./routes/user")
 const resumeRoute = require("./routes/resume")
 const cors = require("cors");
-const resumeRoute = require("./routes/resume");
 const cookieParser = require("cookie-parser");
 
 app.use(cors());

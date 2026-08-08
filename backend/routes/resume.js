@@ -60,4 +60,109 @@ ${resumeText.text}
     return res.json(result);
 })
 
+
+router.post('/questionsFromProject', upload.single("resume"), async (req, res) => {
+    try {
+        const resumeFile = req.file;
+        const parser = new PDFParse({
+            data: resumeFile.buffer
+        })
+        const resumeText = await parser.getText();
+        console.log("resume text", resumeText);
+        await parser.destroy();
+
+        const prompt = `
+You are an interviewer preparing questions for a candidate's resume. Extract and structure technical questions based on the projects listed. If no projects are mentioned, ask general experience-based questions.
+
+Return ONLY a JSON object with this exact structure:
+
+{
+  "questions": [
+    {
+      "category": "project-name|general-experience|technical-foundations",
+      "question": "The question text"
+    }
+  ]
+}
+
+Resume:
+${resumeText.text}
+`;
+        const interaction = await ai.interactions.create({
+            model: "gemini-3.6-flash",
+            input: prompt
+        });
+        const response = interaction.output_text;
+        const result = JSON.parse(response);
+        return res.json(result);
+
+    } catch (err) {
+        return res.status(500).json({
+            error: err.message,
+        });
+    }
+})
+
+router.post('/jobCompatibility', upload.single("resume"), async (req, res) => {
+    try {
+        const resumeFile = req.file;
+        const { jobDescription } = req.body;
+        const parser = new PDFParse({
+            data: resumeFile.buffer
+        })
+        const resumeText = await parser.getText();
+        console.log("resume text", resumeText);
+        await parser.destroy();
+
+        const prompt = `
+You are an expert ATS (Applicant Tracking System) and technical recruiter.
+
+Your task is to compare the candidate's resume with the given job description and calculate how well the resume matches the job requirements.
+
+Evaluate the match based on:
+- Required technical skills
+- Programming languages
+- Frameworks and libraries
+- Tools and technologies
+- Projects and practical experience
+- Education (if relevant)
+- Experience level (if mentioned)
+- Overall relevance to the job description
+
+Return ONLY a valid JSON object with this exact structure and nothing else.
+
+{
+  "matchPercentage": 85
+}
+
+Rules:
+- The value must be an integer between 0 and 100.
+- Do not include "%" symbol.
+- Do not include explanations, reasoning, markdown, code blocks, or additional keys.
+- Output ONLY the JSON object.
+
+Resume:
+${resumeText.text}
+
+Job Description:
+${jobDescription}
+`;
+        console.log("Prompt", prompt);
+        const interaction = await ai.interactions.create({
+            model: "gemini-3.6-flash",
+            input: prompt
+        });
+        const response = interaction.output_text;
+        console.log("response", response);
+        const result = JSON.parse(response);
+        console.log("Result", result);
+        return res.json(result);
+
+    } catch (err) {
+        return res.status(500).json({
+            error: err.message,
+        });
+    }
+})
+
 module.exports = router;
