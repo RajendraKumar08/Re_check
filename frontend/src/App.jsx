@@ -5,6 +5,7 @@ import Register from './register.jsx'
 import Login from './login.jsx'
 import Nav from './utils/nav.jsx'
 import User from './user.jsx'
+import Upload_Resume from './upload-resume.jsx'
 function App() {
   return (
     <>
@@ -14,6 +15,7 @@ function App() {
       <Route path='/register' element={<Register/>}></Route>
       <Route path='/login' element={<Login/>}></Route>
       <Route path='/user' element={<User/>}></Route>
+      <Route path='/upload-resume' element={<Upload_Resume/>}></Route>
     </Routes>    
     </>
     

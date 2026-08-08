@@ -28,7 +28,7 @@ router.post("/register", async (req, res) => {
 
         return res.cookie("token", token, {
             httpOnly : true,
-            secure: true,
+            secure: process.env.NODE_ENV === "production",
             maxAge: 900000,
         }).json({
             message: "User created successfully",
@@ -55,7 +55,7 @@ router.post('/login', async (req, res) => {
         const user = await User.findById(payload._id).select("-password -salt")  
         return res.cookie("token", token, {
             httpOnly : true,
-            secure: true,   
+            secure: process.env.NODE_ENV === "production",   
             maxAge: 900000,
         }).json({
             message: "Login successfully",

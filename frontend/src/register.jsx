@@ -21,15 +21,16 @@ function Register(){
         try{
             const res = await axios.post(
                 "http://localhost:8000/api/user/register",
-                formdata
+                formdata,
+                { withCredentials: true }
             )
 
-            alert("Registation successfull");
-            navigate('/login');
+            alert("Registration successful");
+            window.location.href = '/login';
         }
         catch(error){
             console.log(error);
-            alert(error.response?.data?.message || "registraton failed");
+            alert(error.response?.data?.error || error.response?.data?.message || "Registration failed");
         }
     }
     return(
@@ -38,7 +39,7 @@ function Register(){
             <form onSubmit={handlesubmit}>
                 <input type="text" name="fullname" id="" placeholder="full name" onChange={handlechange}/>
                 <input type="text" name="email" id="" placeholder="email" onChange={handlechange}/>
-                <input type="text" name="password" id="" placeholder="password" onChange={handlechange}/>
+                <input type="password" name="password" id="" placeholder="password" onChange={handlechange}/>
                 <button type="submit">Register</button> 
                 <p>already have an accoount</p> 
                 <Link to="/login" >login</Link>

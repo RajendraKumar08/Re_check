@@ -4,7 +4,7 @@ const {createHmac, randomBytes} = require("crypto");
 const {createTokenForUser} = require("../services/auth")
 
 
-const userSchema = Schema.create({
+const userSchema = new Schema({
     full_name : {
         type : String,
         required : true

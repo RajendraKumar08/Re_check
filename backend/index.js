@@ -5,10 +5,12 @@ const mongoose = require('mongoose');
 const userRoute = require("./routes/user")
 const resumeRoute = require("./routes/resume")
 const cors = require("cors");
-const resumeRoute = require("./routes/resume");
 const cookieParser = require("cookie-parser");
-
-app.use(cors());
+  
+app.use(cors({
+    origin: ["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"],
+    credentials: true
+}));
 app.use(express.json());
 
 const PORT = 8000;
