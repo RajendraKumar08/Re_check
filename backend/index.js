@@ -1,34 +1,137 @@
 require("dotenv").config();
 const express = require('express');
 const app = express();
+const http = require('http'); // 1. Added HTTP module
+const { Server } = require('socket.io'); // 2. Added Socket.io
 const mongoose = require('mongoose');
-const userRoute = require("./routes/user")
-const resumeRoute = require("./routes/resume")
+const WebSocket = require('ws'); // 3. Added ws package
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 
+// Existing Routes
+const userRoute = require("./routes/user");
+const resumeRoute = require("./routes/resume");
+const interviewRoute = require("./routes/interview");
+
+// Models & Services for Live Interview
+const LiveInterview = require("./models/liveInterview");
+const { handleGeminiLiveSession } = require("./services/livegemini");
+
+// 4. Wrap express app in HTTP server for WebSocket support
+const server = http.createServer(app);
+
+// 5. Initialize Socket.io
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Adjust this to match your frontend URL in production
+    methods: ["GET", "POST"]
+  }
+});
+
+// Middleware
 app.use(cors());
 app.use(express.json());
-
-const PORT = 8000;
-
-const MONGO_URI = process.env.MONGODB_URI;
-mongoose.connect(MONGO_URI).then(() => console.log("Mongo db connected")).catch((err) => console.log("mongodb err", err));
-
-app.use(express.json());
 app.use(cookieParser());
-app.use(express.urlencoded({extended : true}));
+app.use(express.urlencoded({ extended: true }));
 
+const PORT = process.env.PORT || 8000;
 
+// Database Connection
+const MONGO_URI = process.env.MONGODB_URI;
+mongoose.connect(MONGO_URI)
+  .then(() => console.log("Mongo db connected"))
+  .catch((err) => console.log("mongodb err", err));
+
+// Test Route
 app.get('/', (req, res) => {
   res.json('Hello World!');
 });
 
+// Express API Routes
 app.use('/api/resume', resumeRoute);
 app.use('/api/user', userRoute);
+app.use('/api/interview', interviewRoute);
 
+// -------------------------------------------------------------
+// REAL-TIME SOCKET.IO HANDLERS FOR LIVE INTERVIEW & CODE EDITOR
+// -------------------------------------------------------------
+io.on('connection', (socket) => {
+  console.log(`⚡ New client connected: ${socket.id}`);
+  let geminiWs = null;
+  let currentSessionId = null;
 
-app.listen(PORT, () => {
-    console.log(`server is runnign at the port ${PORT}`)
-    console.log("http://localhost:8000");
-})
+  // Event 1: Start Interview Session
+  socket.on('start-session', async (data) => {
+    try {
+      const { userId, jobRole, difficulty, resumeText } = data;
+
+      // Create session record in Mongo
+      const session = new LiveInterview({
+        userId,
+        jobRole,
+        difficulty,
+        resumeText
+      });
+      await session.save();
+      currentSessionId = session._id;
+
+      // Start live stream connection to Gemini via services/livegemini.js
+      geminiWs = handleGeminiLiveSession(socket, { jobRole, difficulty, resumeText });
+
+      socket.emit('session-started', { sessionId: currentSessionId });
+    } catch (err) {
+      console.error('Session Init Error:', err);
+      socket.emit('error', 'Failed to initialize live interview session');
+    }
+  });
+
+  // Event 2: Relay user audio buffer/chunks to Gemini
+  socket.on('user-audio-chunk', (base64Audio) => {
+    if (geminiWs && geminiWs.readyState === WebSocket.OPEN) {
+      geminiWs.send(JSON.stringify({
+        realtimeInput: {
+          mediaChunks: [{
+            mimeType: 'audio/pcm;rate=16000',
+            data: base64Audio
+          }]
+        }
+      }));
+    }
+  });
+
+  // Event 3: Real-time Code Editor Updates
+  socket.on('code-update', async ({ sessionId, code, language }) => {
+    try {
+      if (sessionId) {
+        await LiveInterview.findByIdAndUpdate(sessionId, {
+          codeSnippet: code,
+          codeLanguage: language
+        });
+      }
+
+      // Inform Gemini about code updates
+      if (geminiWs && geminiWs.readyState === WebSocket.OPEN) {
+        geminiWs.send(JSON.stringify({
+          realtimeInput: {
+            mediaChunks: [],
+            text: `[System Update: Candidate code changed in editor (${language}):\n${code}]`
+          }
+        }));
+      }
+    } catch (err) {
+      console.error('Code Sync Error:', err);
+    }
+  });
+
+  // Cleanup on disconnect
+  socket.on('disconnect', () => {
+    if (geminiWs) geminiWs.close();
+    console.log(`❌ Client disconnected: ${socket.id}`);
+  });
+});
+
+// 6. Listen using 'server.listen' instead of 'app.listen'
+server.listen(PORT, () => {
+  console.log(`server is running at the port ${PORT}`);
+  console.log(`http://localhost:${PORT}`);
+});

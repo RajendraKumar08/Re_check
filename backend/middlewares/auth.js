@@ -1,4 +1,4 @@
-const { validateToken } = require("../service/auth");
+const { validateToken } = require("../services/auth");
 
 function checkForAuthenticationCookie(cookieName){
     return async (req, res, next) => {
