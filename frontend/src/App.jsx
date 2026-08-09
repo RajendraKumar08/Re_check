@@ -6,6 +6,7 @@ import Login from './login.jsx'
 import Nav from './utils/nav.jsx'
 import User from './user.jsx'
 import Upload_Resume from './upload-resume.jsx'
+import Jobcompactibility from './jobcompactibility.jsx'
 function App() {
   return (
     <>
@@ -16,6 +17,7 @@ function App() {
       <Route path='/login' element={<Login/>}></Route>
       <Route path='/user' element={<User/>}></Route>
       <Route path='/upload-resume' element={<Upload_Resume/>}></Route>
+      <Route path='/job-compatibility' element={<Jobcompactibility/>}></Route>
     </Routes>    
     </>
     

@@ -12,7 +12,44 @@ function Upload_Resume() {
   const [error, setError] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
+  const [aiquestion, setaiquestion] = useState(null);
+  const [aiquestionloading, setaiquestionloading] = useState(false);
+  const [copiedIdx, setCopiedIdx] = useState(null);
   const navigate = useNavigate();
+
+  const handleCopyQuestion = (text, idx) => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+    }
+    setCopiedIdx(idx);
+    setTimeout(() => setCopiedIdx(null), 2000);
+  };
+
+  const handlequestion = async () => {
+    if (!resume) {
+      setError("Please select or upload a resume file first.");
+      return;
+    }
+    setaiquestionloading(true);
+    const formData = new FormData();
+    formData.append("resume", resume);
+    try {
+      const response = await axios.post("http://localhost:8000/api/resume/questionsFromProject", formData, {
+        withCredentials: true,
+      });
+      const questionsData = response.data.questions || response.data;
+      setaiquestion(Array.isArray(questionsData) ? questionsData : []);
+    } catch (err) {
+      console.error("Upload error", err);
+      setError(
+        err.response?.data?.error ||
+          err.response?.data?.message ||
+          "Failed to generate project questions. Please try again."
+      );
+    } finally {
+      setaiquestionloading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -389,6 +426,114 @@ function Upload_Resume() {
               </div>
             </div>
           )}
+          {/* Project & Technical Interview Questions Section */}
+          <div className="section-card questions-section">
+            <div className="questions-section-header">
+              <div className="questions-title-wrapper">
+                <div className="section-title title-questions">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <path d="M9 13h6" />
+                    <path d="M9 17h3" />
+                  </svg>
+                  Project & Technical Interview Questions
+                </div>
+                <p className="questions-subtitle">
+                  AI-extracted technical and experience-based interview questions tailored to your resume projects.
+                </p>
+              </div>
+
+              <button
+                className="btn-generate-questions"
+                type="button"
+                onClick={handlequestion}
+                disabled={aiquestionloading}
+              >
+                {aiquestionloading ? (
+                  <>
+                    <span className="btn-spinner"></span>
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                    </svg>
+                    {aiquestion ? "Regenerate Questions" : "Generate Questions"}
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Loading State */}
+            {aiquestionloading && (
+              <div className="questions-loading-state">
+                <div className="loading-spinner"></div>
+                <p>Analyzing project details and crafting targeted technical questions...</p>
+              </div>
+            )}
+
+            {/* Initial Empty State */}
+            {!aiquestionloading && !aiquestion && (
+              <div className="questions-empty-state">
+                <div className="empty-icon">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                </div>
+                <h4>Ready to prep for technical interviews?</h4>
+                <p>Click "Generate Questions" above to extract custom project & technical questions from your resume.</p>
+              </div>
+            )}
+
+            {/* Generated Questions List */}
+            {!aiquestionloading && Array.isArray(aiquestion) && aiquestion.length > 0 && (
+              <div className="questions-list">
+                {aiquestion.map((q, idx) => {
+                  const questionText = typeof q === "object" ? q.question : q;
+                  const categoryText = typeof q === "object" && q.category ? q.category : "Technical Project";
+                  const isCopied = copiedIdx === idx;
+
+                  return (
+                    <div key={idx} className="question-card">
+                      <div className="question-card-header">
+                        <div className="question-badge-group">
+                          <span className="question-number">Question #{idx + 1}</span>
+                          <span className="question-category-pill">{categoryText}</span>
+                        </div>
+                        <button
+                          className={`btn-copy-question ${isCopied ? "copied" : ""}`}
+                          title="Copy Question"
+                          onClick={() => handleCopyQuestion(questionText, idx)}
+                        >
+                          {isCopied ? (
+                            <>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                              Copied!
+                            </>
+                          ) : (
+                            <>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                              </svg>
+                              Copy
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <div className="question-text">{questionText}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
