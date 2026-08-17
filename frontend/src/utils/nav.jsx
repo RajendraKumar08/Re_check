@@ -93,6 +93,24 @@ function Nav(){
                         </svg>
                         <span>Job Compatibility</span>
                 </div>
+                <div
+                    onClick={()=>{
+                        if(!user){
+                            navigate('/login')
+                        }else{
+                            navigate('/live-interview')
+                        }
+                    }}
+                    className="nav-glass-btn primary-interview"
+                    style={{color: 'white', textDecoration: 'none', marginLeft: '10px'}}
+                    >
+                        <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="2" y="4" width="20" height="14" rx="2" ry="2"/>
+                            <path d="M2 10h20"/>
+                            <polygon points="16 8 12 4 8 8"/>
+                        </svg>
+                        <span>Live Interview</span>
+                </div>
                 </div>
 
                 <div className="nav-divider"></div>

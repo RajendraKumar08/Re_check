@@ -187,4 +187,30 @@ ${jobDescription}
     }
 });
 
+router.post('/extract-text', upload.single("resume"), async (req, res) => {
+    try {
+        const resumeFile = req.file;
+        if (!resumeFile) {
+            return res.status(400).json({ error: "No resume file provided." });
+        }
+
+        const parser = new PDFParse({
+            data: resumeFile.buffer
+        });
+        const parsedResult = await parser.getText();
+        await parser.destroy();
+
+        return res.json({
+            success: true,
+            text: parsedResult.text || ""
+        });
+
+    } catch (err) {
+        console.error("Error in /extract-text:", err);
+        return res.status(500).json({
+            error: err.message || "Failed to extract text from resume."
+        });
+    }
+});
+
 module.exports = router;

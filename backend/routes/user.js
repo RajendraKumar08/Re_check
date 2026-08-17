@@ -40,7 +40,12 @@ router.post("/register", async (req, res) => {
         });
 
     } catch (err) {
-        return res.status(500).json({
+        if (err.code === 11000) {
+            return res.status(400).json({
+                error: "Email is already registered",
+            });
+        }
+        return res.status(400).json({
             error: err.message,
         });
     }
@@ -48,6 +53,12 @@ router.post("/register", async (req, res) => {
 
 router.post('/login', async (req, res) => {
     const {email, password} = req.body;
+    
+    if (!email || !password) {
+        return res.status(400).json({
+            error: "Email and password are required",
+        });
+    }
     
     try {
         const token = await User.matchPasswordAndGenerateToken(email, password);
@@ -62,7 +73,7 @@ router.post('/login', async (req, res) => {
             user
         })
     } catch (err) {
-        return res.status(500).json({
+        return res.status(400).json({
             error: err.message,
         });
     }

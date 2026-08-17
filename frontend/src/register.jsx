@@ -30,18 +30,19 @@ function Register(){
         }
         catch(error){
             console.log(error);
-            alert(error.response?.data?.error || error.response?.data?.message || "Registration failed");
+            const errMsg = error.response?.data?.error || error.response?.data?.message || error.message || "Registration failed";
+            alert(errMsg);
         }
     }
     return(
         <div>
             <h1>Register</h1>
             <form onSubmit={handlesubmit}>
-                <input type="text" name="fullname" id="" placeholder="full name" onChange={handlechange}/>
-                <input type="text" name="email" id="" placeholder="email" onChange={handlechange}/>
-                <input type="password" name="password" id="" placeholder="password" onChange={handlechange}/>
+                <input type="text" name="fullname" id="" placeholder="full name" value={formdata.fullname} onChange={handlechange}/>
+                <input type="text" name="email" id="" placeholder="email" value={formdata.email} onChange={handlechange}/>
+                <input type="password" name="password" id="" placeholder="password" value={formdata.password} onChange={handlechange}/>
                 <button type="submit">Register</button> 
-                <p>already have an accoount</p> 
+                <p>already have an account</p> 
                 <Link to="/login" >login</Link>
             </form>
         </div>

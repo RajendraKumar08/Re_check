@@ -29,7 +29,10 @@ const io = new Server(server, {
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000", "http://127.0.0.1:5173"],
+  credentials: true
+}));
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
@@ -63,25 +66,35 @@ io.on('connection', (socket) => {
   // Event 1: Start Interview Session
   socket.on('start-session', async (data) => {
     try {
-      const { userId, jobRole, difficulty, resumeText } = data;
+      const { userId, jobRole, difficulty, resumeText } = data || {};
+
+      // Ensure valid ObjectId for userId
+      let validUserId = userId;
+      if (!validUserId || !mongoose.Types.ObjectId.isValid(validUserId)) {
+        validUserId = new mongoose.Types.ObjectId();
+      }
 
       // Create session record in Mongo
       const session = new LiveInterview({
-        userId,
-        jobRole,
-        difficulty,
-        resumeText
+        userId: validUserId,
+        jobRole: jobRole || "Full Stack Developer",
+        difficulty: difficulty || "Mid-Level",
+        resumeText: resumeText || ""
       });
       await session.save();
       currentSessionId = session._id;
 
       // Start live stream connection to Gemini via services/livegemini.js
-      geminiWs = handleGeminiLiveSession(socket, { jobRole, difficulty, resumeText });
+      geminiWs = handleGeminiLiveSession(socket, {
+        jobRole: session.jobRole,
+        difficulty: session.difficulty,
+        resumeText: session.resumeText
+      });
 
       socket.emit('session-started', { sessionId: currentSessionId });
     } catch (err) {
       console.error('Session Init Error:', err);
-      socket.emit('error', 'Failed to initialize live interview session');
+      socket.emit('error', err.message || 'Failed to initialize live interview session');
     }
   });
 

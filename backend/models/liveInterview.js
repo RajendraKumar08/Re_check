@@ -12,8 +12,7 @@ const liveInterviewSchema = new mongoose.Schema({
   },
   difficulty: { 
     type: String, 
-    enum: ['Beginner', 'Intermediate', 'Advanced'],
-    required: true 
+    default: 'Mid-Level'
   },
   resumeText: { 
     type: String 

@@ -7,6 +7,7 @@ import Nav from './utils/nav.jsx'
 import User from './user.jsx'
 import Upload_Resume from './upload-resume.jsx'
 import Jobcompactibility from './jobcompactibility.jsx'
+import LiveInterview from './liveinterviwe.jsx'
 function App() {
   return (
     <>
@@ -18,6 +19,7 @@ function App() {
       <Route path='/user' element={<User/>}></Route>
       <Route path='/upload-resume' element={<Upload_Resume/>}></Route>
       <Route path='/job-compatibility' element={<Jobcompactibility/>}></Route>
+      <Route path='/live-interview' element={<LiveInterview/>}></Route>
     </Routes>    
     </>
     
