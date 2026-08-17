@@ -26,6 +26,8 @@ router.post("/register", async (req, res) => {
 
         const token = createTokenForUser(user);
 
+        console.log("Token value in register route" , token);
+
         return res.cookie("token", token, {
             httpOnly : true,
             secure: process.env.NODE_ENV === "production",

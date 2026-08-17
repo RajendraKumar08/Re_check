@@ -6,6 +6,7 @@ const { Server } = require('socket.io'); // 2. Added Socket.io
 const mongoose = require('mongoose');
 const WebSocket = require('ws'); // 3. Added ws package
 const cors = require("cors");
+const User = require("./models/user");
 const cookieParser = require("cookie-parser");
 
 // Existing Routes
@@ -39,8 +40,17 @@ const PORT = process.env.PORT || 8000;
 // Database Connection
 const MONGO_URI = process.env.MONGODB_URI;
 mongoose.connect(MONGO_URI)
-  .then(() => console.log("Mongo db connected"))
+  .then(async () => {
+    console.log("Mongo db connected");
+
+    // Create/update indexes
+    await User.syncIndexes();
+
+    console.log("User indexes synced");
+  })
   .catch((err) => console.log("mongodb err", err));
+
+
 
 // Test Route
 app.get('/', (req, res) => {
