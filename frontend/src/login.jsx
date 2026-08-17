@@ -6,7 +6,6 @@ import axios from 'axios'
 function Login(){
     
     const [user, setUser] = useState({
-        name: "",
         email: "",
         password: "",
     })
@@ -24,15 +23,19 @@ function Login(){
     const handleSubmit = async (e) => {
         e.preventDefault()
         try{
-            const res = await axios.post('http://localhost:8000/api/user/login', user, {withCredentials:true});
+            const res = await axios.post('http://localhost:8000/api/user/login', {
+                email: user.email,
+                password: user.password
+            }, {withCredentials:true});
             console.log("response", res.data);
             if (res.status === 200){
                 window.location.href = "/user";
             }
         }
         catch(error){
-            alert(error.response?.data?.error || error.response?.data?.message || "login failed");
-            console.log("error", error.response?.data)
+            const errMsg = error.response?.data?.error || error.response?.data?.message || error.message || "login failed";
+            alert(errMsg);
+            console.log("error", error.response?.data || error)
         }
     }
     
