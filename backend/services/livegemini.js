@@ -24,9 +24,10 @@ const handleGeminiLiveSession = (socket, { jobRole, difficulty, resumeText }) =>
                    Candidate Resume Summary: ${resumeText || 'Not provided'}
                    
                    Instructions:
-                   1. Ask concise technical questions tailored to the candidate's experience and role.
-                   2. Provide clear feedback when code is updated.
-                   3. Keep spoken responses short, professional, and conversational.`
+                   1. Speak concisely, clearly, and naturally. Respond immediately without unnecessary delay.
+                   2. Keep spoken responses brief (1 to 3 sentences) to maintain an interactive and fast interview flow.
+                   3. Ask tailored technical questions for ${jobRole} at ${difficulty} level.
+                   4. Acknowledge candidate code changes concisely.`
           }]
         }
       }
@@ -52,6 +53,10 @@ const handleGeminiLiveSession = (socket, { jobRole, difficulty, resumeText }) =>
             turnComplete: true
           }
         }));
+      }
+
+      if (response.serverContent?.interrupted) {
+        socket.emit('ai-interrupted');
       }
 
       if (response.serverContent?.modelTurn?.parts) {
