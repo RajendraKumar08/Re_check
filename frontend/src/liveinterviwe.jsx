@@ -284,8 +284,9 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
         }
 
         // 3. VAD Noise Gate: Filter out silence & background noise (< 0.012)
+        // (Removed early return: we must send silence so Gemini's VAD triggers turn completion quickly)
         if (rms < 0.012) {
-          return;
+          // Do nothing, just let it pass through as silence
         }
 
         const pcm16 = new Int16Array(inputData.length);
