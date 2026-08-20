@@ -20,6 +20,11 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
   const mediaStreamRef = useRef(null);
   const scriptProcessorRef = useRef(null);
   const nextPlayTimeRef = useRef(0);
+  const activeSourcesRef = useRef([]);
+  
+  // VAD Refs
+  const isSpeakingRef = useRef(false);
+  const silenceStartRef = useRef(null);
 
   useEffect(() => {
     // 1. Initialize Socket.io Connection
@@ -44,6 +49,18 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
     // 3. Receive AI Subtitles/Transcripts
     socketRef.current.on('ai-transcript', (text) => {
       setTranscripts((prev) => [...prev, { speaker: 'AI', text }]);
+    });
+    
+    // 4. Handle AI Interruption (flush audio queue)
+    socketRef.current.on('ai-interrupted', () => {
+      console.log('AI was interrupted - flushing audio queue');
+      activeSourcesRef.current.forEach(source => {
+        try { source.stop(); } catch (e) {}
+      });
+      activeSourcesRef.current = [];
+      if (audioContextRef.current) {
+        nextPlayTimeRef.current = audioContextRef.current.currentTime;
+      }
     });
 
     socketRef.current.on('disconnect', () => {
@@ -112,21 +129,46 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
         if (isMuted) return;
 
         const inputData = e.inputBuffer.getChannelData(0);
-        // Convert Float32 audio samples to Int16 PCM
+        let sumSquares = 0;
+        
+        // Convert Float32 audio samples to Int16 PCM and calculate RMS for VAD
         const pcm16 = new Int16Array(inputData.length);
         for (let i = 0; i < inputData.length; i++) {
           const s = Math.max(-1, Math.min(1, inputData[i]));
           pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+          sumSquares += inputData[i] * inputData[i];
+        }
+        
+        // VAD logic
+        const rms = Math.sqrt(sumSquares / inputData.length);
+        const volumeThreshold = 0.01; 
+        
+        if (rms > volumeThreshold) {
+          isSpeakingRef.current = true;
+          silenceStartRef.current = null;
+        } else if (isSpeakingRef.current) {
+          if (!silenceStartRef.current) {
+            silenceStartRef.current = Date.now();
+          } else if (Date.now() - silenceStartRef.current > 500) {
+            // Detected > 500ms of silence after speaking, signal turn complete
+            isSpeakingRef.current = false;
+            silenceStartRef.current = null;
+            if (socketRef.current && socketRef.current.connected) {
+              socketRef.current.emit('turn-complete');
+            }
+          }
         }
 
-        // Convert Int16Array Buffer to Base64 String
-        const base64Audio = btoa(
-          String.fromCharCode(...new Uint8Array(pcm16.buffer))
-        );
+        // Only send audio chunks if we are speaking or trailing silence
+        // This flushes pending socket buffers by avoiding sending endless silence
+        if (isSpeakingRef.current || silenceStartRef.current !== null) {
+          const base64Audio = btoa(
+            String.fromCharCode(...new Uint8Array(pcm16.buffer))
+          );
 
-        // Send Audio Chunk to Backend via Socket
-        if (socketRef.current && socketRef.current.connected) {
-          socketRef.current.emit('user-audio-chunk', base64Audio);
+          if (socketRef.current && socketRef.current.connected) {
+            socketRef.current.emit('user-audio-chunk', base64Audio);
+          }
         }
       };
 
@@ -169,6 +211,11 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
     if (nextPlayTimeRef.current < currentTime) {
       nextPlayTimeRef.current = currentTime;
     }
+
+    source.onended = () => {
+      activeSourcesRef.current = activeSourcesRef.current.filter((s) => s !== source);
+    };
+    activeSourcesRef.current.push(source);
 
     source.start(nextPlayTimeRef.current);
     nextPlayTimeRef.current += audioBuffer.duration;

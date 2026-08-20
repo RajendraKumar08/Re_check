@@ -122,6 +122,17 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Event 2b: Explicit Turn Completion from VAD
+  socket.on('turn-complete', () => {
+    if (geminiWs && geminiWs.readyState === WebSocket.OPEN) {
+      geminiWs.send(JSON.stringify({
+        clientContent: {
+          turnComplete: true
+        }
+      }));
+    }
+  });
+
   // Event 3: Real-time Code Editor Updates
   socket.on('code-update', async ({ sessionId, code, language }) => {
     try {
