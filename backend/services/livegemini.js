@@ -14,20 +14,27 @@ const handleGeminiLiveSession = (socket, { jobRole, difficulty, resumeText }) =>
       setup: {
         model: 'models/gemini-2.5-flash-native-audio-latest',
         generationConfig: {
-          responseModalities: ['AUDIO']
+          responseModalities: ['AUDIO'],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: {
+                voiceName: 'Puck'
+              }
+            }
+          }
         },
         systemInstruction: {
           parts: [{
-            text: `You are an expert technical interviewer conducting a live interview.
+            text: `You are an expert technical interviewer conducting a live fast-paced interview.
                    Target Role: ${jobRole}
                    Difficulty Level: ${difficulty}
                    Candidate Resume Summary: ${resumeText || 'Not provided'}
                    
-                   Instructions:
-                   1. Speak concisely, clearly, and naturally. Respond immediately without unnecessary delay.
-                   2. Keep spoken responses brief (1 to 3 sentences) to maintain an interactive and fast interview flow.
-                   3. Ask tailored technical questions for ${jobRole} at ${difficulty} level.
-                   4. Acknowledge candidate code changes concisely.`
+                   CRITICAL INSTRUCTIONS FOR LOW LATENCY & CONVERSATIONAL FLOW:
+                   1. Respond IMMEDIATELY as soon as the candidate finishes speaking.
+                   2. Keep spoken responses short, punchy, and direct (1 to 2 short sentences max).
+                   3. Never deliver lengthy monologues. Maintain a rapid back-and-forth conversational flow.
+                   4. Ask targeted technical questions appropriate for ${jobRole} at ${difficulty} level.`
           }]
         }
       }

@@ -46,6 +46,9 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
   const isAiSpeakingRef = useRef(false);
   const aiAudioEndTimeRef = useRef(0);
   const activeSourcesRef = useRef([]);
+  const isUserSpeakingRef = useRef(false);
+  const silenceFrameCountRef = useRef(0);
+  const codeTimeoutRef = useRef(null);
 
   // Fetch User Auth
   useEffect(() => {
@@ -283,10 +286,44 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
           }
         }
 
-        // 3. VAD Noise Gate: Filter out silence & background noise (< 0.012)
-        // (Removed early return: we must send silence so Gemini's VAD triggers turn completion quickly)
-        if (rms < 0.012) {
-          // Do nothing, just let it pass through as silence
+        // 3. VAD Noise Gate & Turn Completion Gating:
+        // Noise floor threshold: 0.015. Anything below is treated as ambient background noise.
+        const SILENCE_THRESHOLD = 0.015;
+
+        if (rms >= SILENCE_THRESHOLD) {
+          // User is actively speaking
+          isUserSpeakingRef.current = true;
+          silenceFrameCountRef.current = 0;
+        } else {
+          // Volume is below speech threshold
+          if (isUserSpeakingRef.current) {
+            // User was speaking, now paused/stopped speaking
+            silenceFrameCountRef.current += 1;
+
+            // Send up to 3 frames (~380ms) of pure digital silence (all zeroes)
+            // to cleanly signal turn completion to Gemini's server-side VAD
+            if (silenceFrameCountRef.current <= 3) {
+              const zeroPcm = new Int16Array(inputData.length);
+              const zeroBase64 = btoa(String.fromCharCode(...new Uint8Array(zeroPcm.buffer)));
+              if (socketRef.current && socketRef.current.connected) {
+                socketRef.current.emit('user-audio-chunk', zeroBase64);
+              }
+              return;
+            } else if (silenceFrameCountRef.current === 4) {
+              // Mark speech ended and notify backend to trigger immediate Gemini turn completion
+              isUserSpeakingRef.current = false;
+              if (socketRef.current && socketRef.current.connected) {
+                socketRef.current.emit('user-speech-end');
+              }
+              return;
+            } else {
+              // User is silent, stop sending room noise
+              return;
+            }
+          } else {
+            // User is not speaking and silent period has passed; skip sending ambient noise
+            return;
+          }
         }
 
         const pcm16 = new Int16Array(inputData.length);
@@ -359,17 +396,23 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
     }
   };
 
-  // CODE EDITOR CHANGE
+  // CODE EDITOR CHANGE (Debounced 1000ms to avoid flooding Gemini Live WS)
   const handleCodeChange = (newCode) => {
     setCode(newCode);
 
-    if (socketRef.current && sessionIdRef.current) {
-      socketRef.current.emit('code-update', {
-        sessionId: sessionIdRef.current,
-        code: newCode,
-        language
-      });
+    if (codeTimeoutRef.current) {
+      clearTimeout(codeTimeoutRef.current);
     }
+
+    codeTimeoutRef.current = setTimeout(() => {
+      if (socketRef.current && sessionIdRef.current) {
+        socketRef.current.emit('code-update', {
+          sessionId: sessionIdRef.current,
+          code: newCode,
+          language
+        });
+      }
+    }, 1000);
   };
 
   if (authLoading) {
