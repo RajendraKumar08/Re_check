@@ -105,8 +105,8 @@ ${resumeText.text}
             input: prompt
         });
 
-        const responseText = response.text.replace(/```json/gi, "").replace(/```/g, "").trim();
-        const result = JSON.parse(responseText);
+        const response = interaction.output_text;
+        const result = JSON.parse(response);
         return res.json(result);
 
     } catch (err) {
