@@ -3,7 +3,7 @@ const { validateToken } = require("../services/auth");
 function checkForAuthenticationCookie(cookieName){
     return async (req, res, next) => {
         const tokenCookieValue = req.cookies[cookieName];
-        console.log("Cookies in auth middleware", req.cookies)
+    
         if (!tokenCookieValue) {
             return next();
         }

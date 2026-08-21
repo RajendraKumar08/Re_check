@@ -13,6 +13,7 @@ const cookieParser = require("cookie-parser");
 const userRoute = require("./routes/user");
 const resumeRoute = require("./routes/resume");
 const interviewRoute = require("./routes/interview");
+const uploadRoute = require('./routes/resume-upload'); 
 
 // Models & Services for Live Interview
 const LiveInterview = require("./models/liveInterview");
@@ -64,6 +65,7 @@ app.get('/', (req, res) => {
 app.use('/api/resume', resumeRoute);
 app.use('/api/user', userRoute);
 app.use('/api/interview', interviewRoute);
+app.use('/api/upload', uploadRoute);
 
 // -------------------------------------------------------------
 // REAL-TIME SOCKET.IO HANDLERS FOR LIVE INTERVIEW & CODE EDITOR
@@ -76,7 +78,7 @@ io.on('connection', (socket) => {
   // Event 1: Start Interview Session
   socket.on('start-session', async (data) => {
     try {
-      const { userId, jobRole, difficulty, resumeText } = data || {};
+      const { userId, jobRole, difficulty, resumeText, resumeUrl } = data || {};
 
       // Ensure valid ObjectId for userId
       let validUserId = userId;
@@ -89,7 +91,8 @@ io.on('connection', (socket) => {
         userId: validUserId,
         jobRole: jobRole || "Full Stack Developer",
         difficulty: difficulty || "Mid-Level",
-        resumeText: resumeText || ""
+        resumeText: resumeText || "",
+        resumeUrl: resumeUrl || ""
       });
       await session.save();
       currentSessionId = session._id;
