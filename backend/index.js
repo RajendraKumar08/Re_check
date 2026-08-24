@@ -14,6 +14,7 @@ const userRoute = require("./routes/user");
 const resumeRoute = require("./routes/resume");
 const interviewRoute = require("./routes/interview");
 const uploadRoute = require('./routes/resume-upload'); 
+const projectRoute = require('./routes/project');
 
 // Models & Services for Live Interview
 const LiveInterview = require("./models/liveInterview");
@@ -66,6 +67,7 @@ app.use('/api/resume', resumeRoute);
 app.use('/api/user', userRoute);
 app.use('/api/interview', interviewRoute);
 app.use('/api/upload', uploadRoute);
+app.use('/api/project', projectRoute);
 
 // -------------------------------------------------------------
 // REAL-TIME SOCKET.IO HANDLERS FOR LIVE INTERVIEW & CODE EDITOR
