@@ -141,21 +141,24 @@ io.on('connection', (socket) => {
   // Event 3: Real-time Code Editor Updates
   socket.on('code-update', async ({ sessionId, code, language }) => {
     try {
-      if (sessionId) {
-        await LiveInterview.findByIdAndUpdate(sessionId, {
+      if (sessionId && code !== lastCodeSnippet) {
+        lastCodeSnippet = code;
+
+        // Non-blocking database update
+        LiveInterview.findByIdAndUpdate(sessionId, {
           codeSnippet: code,
           codeLanguage: language
-        });
-      }
+        }).catch(err => console.error('DB Code Sync Error:', err));
 
-      // Inform Gemini about code updates
-      if (geminiWs && geminiWs.readyState === WebSocket.OPEN) {
-        geminiWs.send(JSON.stringify({
-          realtimeInput: {
-            mediaChunks: [],
-            text: `[System Update: Candidate code changed in editor (${language}):\n${code}]`
-          }
-        }));
+        // Inform Gemini about code updates only if modified
+        if (geminiWs && geminiWs.readyState === WebSocket.OPEN) {
+          geminiWs.send(JSON.stringify({
+            realtimeInput: {
+              mediaChunks: [],
+              text: `[System Update: Candidate code changed in editor (${language}):\n${code}]`
+            }
+          }));
+        }
       }
     } catch (err) {
       console.error('Code Sync Error:', err);
