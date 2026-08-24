@@ -17,6 +17,9 @@ const liveInterviewSchema = new mongoose.Schema({
   resumeText: { 
     type: String 
   },
+  resumeUrl: {
+    type: String
+  },
   codeSnippet: { 
     type: String, 
     default: '// Write your live solution here...' 
