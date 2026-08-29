@@ -34,7 +34,7 @@ function Upload_Resume() {
     const formData = new FormData();
     formData.append("resume", resume);
     try {
-      const response = await axios.post("http://localhost:8000/api/resume/questionsFromProject", formData, {
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/resume/questionsFromProject`, formData, {
         withCredentials: true,
       });
       const questionsData = response.data.questions || response.data;
@@ -54,7 +54,7 @@ function Upload_Resume() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/api/user/me", {
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/user/me`, {
           withCredentials: true,
         });
         setUser(response.data.user || response.data);
@@ -117,7 +117,7 @@ function Upload_Resume() {
 
     try {
       const response = await axios.post(
-        "http://localhost:8000/api/resume/analyse",
+        `${import.meta.env.VITE_BACKEND_URL}/api/resume/analyse`,
         formData,
         {
           withCredentials: true,

@@ -9,7 +9,7 @@ function Nav(){
     const navigate = useNavigate();
 
     const fetchUser = () => {
-        axios.get("http://localhost:8000/api/user/me", {
+        axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/user/me`, {
             withCredentials: true
         })
         .then((res) => {
@@ -29,7 +29,7 @@ function Nav(){
 
     const handleLogout = async () => {
         try {
-            await axios.post("http://localhost:8000/api/user/logout", {}, { withCredentials: true });
+            await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/user/logout`, {}, { withCredentials: true });
         } catch (err) {
             console.error("Logout error", err);
         } finally {

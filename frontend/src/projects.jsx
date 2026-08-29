@@ -30,7 +30,7 @@ function Projects() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await axios.get("http://localhost:8000/api/user/me", {
+        const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/user/me`, {
           withCredentials: true,
         });
         setUser(res.data.user || res.data);
@@ -64,7 +64,7 @@ function Projects() {
 
     try {
       const res = await axios.post(
-        "http://localhost:8000/api/project/project-questions",
+        `${import.meta.env.VITE_BACKEND_URL}/api/project/project-questions`,
         { githubrepo: githubrepo.trim() },
         { withCredentials: true }
       );

@@ -41,7 +41,7 @@ function Register() {
 
     try {
       await axios.post(
-        "http://localhost:8000/api/user/register",
+        `${import.meta.env.VITE_BACKEND_URL}/api/user/register`,
         {
           fullname: formdata.fullname.trim(),
           email: formdata.email.trim(),

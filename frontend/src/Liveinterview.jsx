@@ -3,7 +3,7 @@ import { io } from 'socket.io-client';
 import Editor from '@monaco-editor/react';
 import { Mic, MicOff, Play, Square } from 'lucide-react';
 
-const SOCKET_SERVER_URL = 'http://localhost:8000'; // Match your backend port
+const SOCKET_SERVER_URL = `${import.meta.env.VITE_BACKEND_URL}`; // Match your backend port
 
 export default function LiveInterview({ userId, jobRole, difficulty, resumeText }) {
   const [isConnected, setIsConnected] = useState(false);

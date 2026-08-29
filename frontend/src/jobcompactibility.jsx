@@ -19,7 +19,7 @@ function Jobcompactibility() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/api/user/me", {
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/user/me`, {
           withCredentials: true,
         });
         setUser(response.data.user || response.data);
@@ -86,7 +86,7 @@ function Jobcompactibility() {
 
     try {
       const response = await axios.post(
-        "http://localhost:8000/api/resume/jobCompatibility",
+        `${import.meta.env.VITE_BACKEND_URL}/api/resume/jobCompatibility`,
         formData,
         {
           withCredentials: true,

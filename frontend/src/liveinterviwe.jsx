@@ -6,7 +6,7 @@ import Editor from '@monaco-editor/react';
 import { Mic, MicOff, Play, Square, Sparkles, CheckCircle2, Upload, FileText, X, Loader2, AlertCircle } from 'lucide-react';
 import './liveinterview.css';
 
-const SOCKET_SERVER_URL = 'http://localhost:8000'; // Match backend port
+const SOCKET_SERVER_URL = `${import.meta.env.VITE_BACKEND_URL}`; // Match backend port
 
 export default function LiveInterview({ userId, jobRole, difficulty, resumeText }) {
   const navigate = useNavigate();
@@ -57,7 +57,7 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/api/user/me", {
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/user/me`, {
           withCredentials: true,
         });
         const userData = response.data.user || response.data;
@@ -141,7 +141,7 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
 
     try {
       const response = await axios.post(
-        'http://localhost:8000/api/upload/upload-resume',
+        `${import.meta.env.VITE_BACKEND_URL}/api/upload/upload-resume`,
         formData,
         {
           withCredentials: true,
@@ -178,7 +178,7 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
 
     try {
       const response = await axios.post(
-        'http://localhost:8000/api/resume/extract-text',
+        `${import.meta.env.VITE_BACKEND_URL}/api/resume/extract-text`,
         formData,
         {
           withCredentials: true,

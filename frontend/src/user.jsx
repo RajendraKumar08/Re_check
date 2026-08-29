@@ -5,7 +5,7 @@ function User(){
     const [user, setUser] = useState(null);
 
     const fetchUser = () => {
-        axios.get("http://localhost:8000/api/user/me", {
+        axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/user/me`, {
             withCredentials: true
         })
         .then((res) => {
