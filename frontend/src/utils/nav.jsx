@@ -13,7 +13,6 @@ function Nav(){
             withCredentials: true
         })
         .then((res) => {
-            // backend returns user object directly or res.data.user
             setUser(res.data.user || res.data);
         })
         .catch(() => {
@@ -39,34 +38,18 @@ function Nav(){
         }
     };
 
-
-    return <>
+    return (
         <nav className="nav-container">
-            <div 
-                className="nav-glass-bar"
-                style={{
-                    display: "flex", 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center', 
-                    padding: '8px 16px', 
-                    width: "85%", 
-                    margin: "auto", 
-                    borderRadius: "50px"
-                }}
-            >
+            <div className="nav-glass-bar">
                 {/* Main Feature Nav Options */}
-                <div style={{display: 'flex'}}>
-                <div 
-                onClick={()=>{
-                    if(!user){
-                        navigate('/login')
-                    }else{
-                        navigate('/upload-resume')
-                    }
-                }}
-                className="nav-section main-nav">
-                    <div className="nav-glass-btn primary-upload"
-                    style={{color: 'white', textDecoration: 'none'}}>
+                <div className="nav-section main-nav">
+                    <div 
+                        onClick={() => {
+                            if (!user) navigate('/login');
+                            else navigate('/upload-resume');
+                        }}
+                        className="nav-glass-btn primary-upload"
+                    >
                         <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                             <polyline points="14 2 14 8 20 8" />
@@ -75,34 +58,27 @@ function Nav(){
                         </svg>
                         <span>Upload Resume</span>
                     </div>
-                </div>
-                <div
-                    onClick={()=>{
-                        if(!user){
-                            navigate('/login')
-                        }else{
-                            navigate('/job-compatibility')
-                        }
-                    }}
-                    className="nav-glass-btn primary-job"
-                    style={{color: 'white', textDecoration: 'none', marginLeft: '10px'}}
+
+                    <div
+                        onClick={() => {
+                            if (!user) navigate('/login');
+                            else navigate('/job-compatibility');
+                        }}
+                        className="nav-glass-btn primary-job"
                     >
                         <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                             <polyline points="22 4 12 14.01 9 11.01" />
                         </svg>
                         <span>Job Compatibility</span>
-                </div>
-                <div
-                    onClick={()=>{
-                        if(!user){
-                            navigate('/login')
-                        }else{
-                            navigate('/live-interview')
-                        }
-                    }}
-                    className="nav-glass-btn primary-interview"
-                    style={{color: 'white', textDecoration: 'none', marginLeft: '10px'}}
+                    </div>
+
+                    <div
+                        onClick={() => {
+                            if (!user) navigate('/login');
+                            else navigate('/live-interview');
+                        }}
+                        className="nav-glass-btn primary-interview"
                     >
                         <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <rect x="2" y="4" width="20" height="14" rx="2" ry="2"/>
@@ -110,28 +86,43 @@ function Nav(){
                             <polygon points="16 8 12 4 8 8"/>
                         </svg>
                         <span>Live Interview</span>
-                </div>
+                    </div>
+
+                    <div
+                        onClick={() => {
+                            if (!user) navigate('/login');
+                            else navigate('/projects');
+                        }}
+                        className="nav-glass-btn primary-projects"
+                    >
+                        <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                        </svg>
+                        <span>Projects</span>
+                    </div>
                 </div>
 
                 <div className="nav-divider"></div>
 
+                {/* Auth Controls */}
                 {user ? (
-                    <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                    <div className="nav-section auth-nav">
                         <Link 
                             to='/user' 
-                            className="nav-glass-btn auth-login"
-                            style={{color: 'white', textDecoration: 'none'}}
+                            className="nav-glass-btn auth-user"
+                            title={user.full_name || user.fullname || user.email}
                         >
                             <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                                 <circle cx="12" cy="7" r="4" />
                             </svg>
-                            <span>{user.full_name || user.fullname || user.email}</span>
+                            <span className="user-name-text">{user.full_name || user.fullname || user.email}</span>
                         </Link>
+
                         <button 
                             onClick={handleLogout}
-                            className="nav-glass-btn auth-login"
-                            style={{color: 'white', background: 'transparent', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px'}}
+                            className="nav-glass-btn auth-logout"
                         >
                             <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
@@ -146,7 +137,6 @@ function Nav(){
                         <Link 
                             to='/register' 
                             className="nav-glass-btn auth-register"
-                            style={{color: 'white', textDecoration: 'none'}}
                         >
                             <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -160,7 +150,6 @@ function Nav(){
                         <Link 
                             to='/login' 
                             className="nav-glass-btn auth-login"
-                            style={{color: 'white', textDecoration: 'none'}}
                         >
                             <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
@@ -173,7 +162,7 @@ function Nav(){
                 )}
             </div>
         </nav>
-    </>
+    );
 }
 
 export default Nav;

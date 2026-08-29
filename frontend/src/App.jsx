@@ -8,6 +8,7 @@ import User from './user.jsx'
 import Upload_Resume from './upload-resume.jsx'
 import Jobcompactibility from './jobcompactibility.jsx'
 import LiveInterview from './liveinterviwe.jsx'
+import Projects from './projects.jsx'
 function App() {
   return (
     <>
@@ -20,6 +21,7 @@ function App() {
       <Route path='/upload-resume' element={<Upload_Resume/>}></Route>
       <Route path='/job-compatibility' element={<Jobcompactibility/>}></Route>
       <Route path='/live-interview' element={<LiveInterview/>}></Route>
+      <Route path='/projects' element={<Projects/>}></Route>
     </Routes>    
     </>
     

@@ -22,6 +22,9 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
 
   // Resume File Upload State
   const [resumeFile, setResumeFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractError, setExtractError] = useState(null);
   const [extractSuccess, setExtractSuccess] = useState(false);
@@ -126,6 +129,44 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
     };
   }, []);
 
+  const [resumeUrl, setResumeUrl] = useState(null);
+
+  const uploadResume = async (file) => {
+    setIsUploading(true);
+    setUploadError(null);
+    setUploadSuccess(false);
+
+    const formData = new FormData();
+    formData.append('resume', file);
+
+    try {
+      const response = await axios.post(
+        'http://localhost:8000/api/upload/upload-resume',
+        formData,
+        {
+          withCredentials: true,
+        }
+      );
+
+      if (response.data) {
+        setResumeUrl(response.data.resumeUrl);
+        setUploadSuccess(true);
+        return true;
+      } else {
+        setUploadError('Could not upload resume.');
+        return false;
+      }
+    } catch (err) {
+      console.error('Error uploading resume:', err);
+      setUploadError(
+        err.response?.data?.error || 'Failed to upload resume.'
+      );
+      return false;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   // RESUME FILE HANDLERS & AUTOMATIC TEXT EXTRACTION
   const extractResumeText = async (file) => {
     setIsExtracting(true);
@@ -140,22 +181,24 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
         'http://localhost:8000/api/resume/extract-text',
         formData,
         {
-          headers: { 'Content-Type': 'multipart/form-data' },
           withCredentials: true,
         }
       );
 
       if (response.data && response.data.text) {
         setSelectedResumeText(response.data.text);
-        setExtractSuccess(true);
+        setExtractSuccess(true);  
+        return true;
       } else {
         setExtractError('Could not read text content from the uploaded resume.');
+        return false;
       }
     } catch (err) {
       console.error('Error extracting resume text:', err);
       setExtractError(
         err.response?.data?.error || 'Failed to extract text from resume.'
       );
+      return false;
     } finally {
       setIsExtracting(false);
     }
@@ -164,7 +207,18 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
   const handleFileSelect = async (file) => {
     if (!file) return;
     setResumeFile(file);
-    await extractResumeText(file);
+    setUploadSuccess(false);
+    setExtractSuccess(false);
+    setUploadError(null);
+    setExtractError(null);
+
+    // 1. Upload resume first (shows uploading loading state)
+    const uploaded = await uploadResume(file);
+    
+    // 2. Once uploaded, extract text (shows text extraction loading state, then success message)
+    if (uploaded) {
+      await extractResumeText(file);
+    }
   };
 
   const handleDragOver = (e) => {
@@ -188,7 +242,10 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
   const removeFile = (e) => {
     e.stopPropagation();
     setResumeFile(null);
+    setResumeUrl(null);
     setSelectedResumeText('');
+    setUploadSuccess(false);
+    setUploadError(null);
     setExtractSuccess(false);
     setExtractError(null);
     if (fileInputRef.current) {
@@ -209,7 +266,8 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
         userId: userId || user?._id || user?.id,
         jobRole: selectedJobRole,
         difficulty: selectedDifficulty,
-        resumeText: selectedResumeText
+        resumeText: selectedResumeText,
+        resumeUrl: resumeUrl
       });
 
       await startMicrophoneCapture();
@@ -481,10 +539,12 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
                 style={{
                   borderColor: isDragging
                     ? '#818cf8'
-                    : extractError
+                    : uploadError || extractError
                     ? '#ef4444'
                     : extractSuccess
                     ? '#10b981'
+                    : isUploading || isExtracting
+                    ? '#818cf8'
                     : 'rgba(99, 102, 241, 0.4)',
                   backgroundColor: isDragging
                     ? 'rgba(99, 102, 241, 0.12)'
@@ -525,6 +585,23 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
                       </button>
                     </div>
 
+                    {/* Step 1: Uploading Resume Loading State */}
+                    {isUploading && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#818cf8', fontSize: '0.85rem', justifyContent: 'center' }}>
+                        <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                        <span>Uploading resume to cloud...</span>
+                      </div>
+                    )}
+
+                    {/* Step 1 Error */}
+                    {uploadError && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#ef4444', fontSize: '0.85rem', justifyContent: 'center' }}>
+                        <AlertCircle size={16} />
+                        <span>{uploadError}</span>
+                      </div>
+                    )}
+
+                    {/* Step 2: Extracting Text Loading State */}
                     {isExtracting && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#818cf8', fontSize: '0.85rem', justifyContent: 'center' }}>
                         <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
@@ -532,13 +609,15 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
                       </div>
                     )}
 
+                    {/* Step 2 Success Message */}
                     {extractSuccess && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '0.85rem', justifyContent: 'center' }}>
                         <CheckCircle2 size={16} />
-                        <span>Resume text extracted successfully ({selectedResumeText.length} chars)</span>
+                        <span>Resume uploaded & text extracted successfully ({selectedResumeText.length} chars)</span>
                       </div>
                     )}
 
+                    {/* Step 2 Error */}
                     {extractError && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#ef4444', fontSize: '0.85rem', justifyContent: 'center' }}>
                         <AlertCircle size={16} />
@@ -553,10 +632,12 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
             <button
               onClick={startInterview}
               className="start-btn"
-              disabled={!isConnected || isExtracting}
+              disabled={!isConnected || isUploading || isExtracting}
             >
               <Play size={20} />
-              {isExtracting
+              {isUploading
+                ? 'Uploading Resume...'
+                : isExtracting
                 ? 'Extracting Resume Text...'
                 : !isConnected
                 ? 'Connecting to Server...'
