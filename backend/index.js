@@ -76,6 +76,7 @@ io.on('connection', (socket) => {
   console.log(`⚡ New client connected: ${socket.id}`);
   let geminiWs = null;
   let currentSessionId = null;
+  let lastCodeSnippet = null;
 
   // Event 1: Start Interview Session
   socket.on('start-session', async (data) => {
