@@ -127,7 +127,17 @@ io.on('connection', (socket) => {
     }
   });
 
-<<<<<<<<< Temporary merge branch 1
+  // Event 2b: Explicit Turn Completion from VAD
+  socket.on('turn-complete', () => {
+    if (geminiWs && geminiWs.readyState === WebSocket.OPEN) {
+      geminiWs.send(JSON.stringify({
+        clientContent: {
+          turnComplete: true
+        }
+      }));
+    }
+  });
+
   // Event 2.5: User finished speaking -> signal turn completion to Gemini to trigger immediate response
   socket.on('user-speech-end', () => {
     if (geminiWs && geminiWs.readyState === WebSocket.OPEN) {
@@ -135,28 +145,16 @@ io.on('connection', (socket) => {
       geminiWs.send(JSON.stringify({
         clientContent: {
           turns: [],
-=========
-  // Event 2b: Explicit Turn Completion from VAD
-  socket.on('turn-complete', () => {
-    if (geminiWs && geminiWs.readyState === WebSocket.OPEN) {
-      geminiWs.send(JSON.stringify({
-        clientContent: {
->>>>>>>>> Temporary merge branch 2
           turnComplete: true
         }
       }));
     }
   });
 
-<<<<<<<<< Temporary merge branch 1
   let lastCodeSnippet = '';
 
   // Event 3: Real-time Code Editor Updates (debounced from client)
-  socket.on('code-update', ({ sessionId, code, language }) => {
-=========
-  // Event 3: Real-time Code Editor Updates
   socket.on('code-update', async ({ sessionId, code, language }) => {
->>>>>>>>> Temporary merge branch 2
     try {
       if (sessionId && code !== lastCodeSnippet) {
         lastCodeSnippet = code;
