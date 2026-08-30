@@ -31,6 +31,7 @@ router.post("/register", async (req, res) => {
         return res.cookie("token", token, {
             httpOnly : true,
             secure: process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
             maxAge: 900000,
         }).json({
             message: "User created successfully",
@@ -68,7 +69,8 @@ router.post('/login', async (req, res) => {
         const user = await User.findById(payload._id).select("-password -salt")  
         return res.cookie("token", token, {
             httpOnly : true,
-            secure: process.env.NODE_ENV === "production",   
+            secure: process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",   
             maxAge: 900000,
         }).json({
             message: "Login successfully",
@@ -110,6 +112,7 @@ router.post("/logout", (req, res) => {
     res.clearCookie("token", {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     });
 
     return res.json({
