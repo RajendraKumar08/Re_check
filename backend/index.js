@@ -115,6 +115,8 @@ io.on('connection', (socket) => {
   });
 
   // Event 2: Relay user audio buffer/chunks to Gemini
+  // NOTE: Gemini Live API uses server-side VAD in realtimeInput mode.
+  // We only send audio chunks — NO explicit turnComplete. Server detects speech end automatically.
   socket.on('user-audio-chunk', (base64Audio) => {
     if (geminiWs && geminiWs.readyState === WebSocket.OPEN) {
       geminiWs.send(JSON.stringify({
@@ -128,18 +130,13 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Event 2b: Explicit Turn Completion from VAD
-  socket.on('turn-complete', () => {
-    if (geminiWs && geminiWs.readyState === WebSocket.OPEN) {
-      geminiWs.send(JSON.stringify({
-        clientContent: {
-          turnComplete: true
-        }
-      }));
-    }
-  });
+  // Event 2b/2c: user-speech-end and turn-complete are intentionally NOT forwarded to Gemini.
+  // Sending clientContent.turnComplete during realtimeInput audio streaming causes a fatal
+  // 1007 "invalid argument" error. Gemini's server-side VAD handles turn detection from audio.
+  socket.on('user-speech-end', () => { /* no-op: server VAD handles turn detection */ });
+  socket.on('turn-complete', () => { /* no-op: server VAD handles turn detection */ });
 
-  // Event 3: Real-time Code Editor Updates
+  // Event 3: Real-time Code Editor — save to DB only (no Gemini relay to avoid protocol errors)
   socket.on('code-update', async ({ sessionId, code, language }) => {
     try {
       if (sessionId && code !== lastCodeSnippet) {
@@ -150,16 +147,6 @@ io.on('connection', (socket) => {
           codeSnippet: code,
           codeLanguage: language
         }).catch(err => console.error('DB Code Sync Error:', err));
-
-        // Inform Gemini about code updates only if modified
-        if (geminiWs && geminiWs.readyState === WebSocket.OPEN) {
-          geminiWs.send(JSON.stringify({
-            realtimeInput: {
-              mediaChunks: [],
-              text: `[System Update: Candidate code changed in editor (${language}):\n${code}]`
-            }
-          }));
-        }
       }
     } catch (err) {
       console.error('Code Sync Error:', err);

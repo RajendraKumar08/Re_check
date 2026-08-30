@@ -9,7 +9,6 @@ const handleGeminiLiveSession = (socket, { jobRole, difficulty, resumeText }) =>
   geminiWs.on('open', () => {
     console.log('⚡ Connected to Gemini Multimodal Live API');
 
-    // Setup configuration payload
     const setupMessage = {
       setup: {
         model: 'models/gemini-2.5-flash-native-audio-latest',
@@ -48,7 +47,10 @@ const handleGeminiLiveSession = (socket, { jobRole, difficulty, resumeText }) =>
     try {
       const response = JSON.parse(data.toString());
 
-      // Initial trigger when WebSocket setup finishes
+      // Send the opening text prompt ONCE after setup using clientContent (text turn).
+      // After this, all communication is realtimeInput audio — server-side VAD handles
+      // turn detection automatically. We must NOT send clientContent.turnComplete
+      // during audio streaming, as that causes a fatal 1007 error.
       if (response.setupComplete) {
         console.log('⚡ Gemini Live Setup Complete. Starting interview dialogue...');
         geminiWs.send(JSON.stringify({
@@ -63,6 +65,7 @@ const handleGeminiLiveSession = (socket, { jobRole, difficulty, resumeText }) =>
       }
 
       if (response.serverContent?.interrupted) {
+        console.log('⚡ Gemini interrupted');
         socket.emit('ai-interrupted');
       }
 
@@ -76,6 +79,13 @@ const handleGeminiLiveSession = (socket, { jobRole, difficulty, resumeText }) =>
           }
         }
       }
+
+      // Model finished its turn — safe for user to speak
+      if (response.serverContent?.turnComplete) {
+        console.log('✅ Gemini turn complete — listening for user');
+        socket.emit('ai-turn-complete');
+      }
+
     } catch (err) {
       console.error('Gemini WS Message Parse Error:', err);
     }

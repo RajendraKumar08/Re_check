@@ -51,6 +51,7 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
   const activeSourcesRef = useRef([]);
   const isUserSpeakingRef = useRef(false);
   const silenceFrameCountRef = useRef(0);
+  const hasUserSentAudioRef = useRef(false); // Guard: only signal turn-end if user actually spoke
   const codeTimeoutRef = useRef(null);
 
   // Fetch User Auth
@@ -81,7 +82,7 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
       activeSourcesRef.current.forEach((src) => {
         try {
           src.stop();
-        } catch (e) {}
+        } catch (e) { }
       });
       activeSourcesRef.current = [];
     }
@@ -115,6 +116,11 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
 
     socketRef.current.on('ai-interrupted', () => {
       stopAllAiAudio();
+    });
+
+    // AI has fully finished its turn — safe to accept user speech again
+    socketRef.current.on('ai-turn-complete', () => {
+      hasUserSentAudioRef.current = false; // Reset so next user turn is tracked cleanly
     });
 
     socketRef.current.on('disconnect', () => {
@@ -187,7 +193,7 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
 
       if (response.data && response.data.text) {
         setSelectedResumeText(response.data.text);
-        setExtractSuccess(true);  
+        setExtractSuccess(true);
         return true;
       } else {
         setExtractError('Could not read text content from the uploaded resume.');
@@ -214,7 +220,7 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
 
     // 1. Upload resume first (shows uploading loading state)
     const uploaded = await uploadResume(file);
-    
+
     // 2. Once uploaded, extract text (shows text extraction loading state, then success message)
     if (uploaded) {
       await extractResumeText(file);
@@ -332,7 +338,10 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
 
         // 2. Echo Prevention: If AI speaker output is currently playing, suppress mic input
         const now = audioContextRef.current ? audioContextRef.current.currentTime : 0;
-        const isAiActive = isAiSpeakingRef.current || (aiAudioEndTimeRef.current && now < aiAudioEndTimeRef.current);
+        // Echo Prevention: If AI speaker output is currently playing, suppress mic input.
+        // Add 300ms grace buffer after audio ends to prevent tail-end echo.
+        const isAiActive = isAiSpeakingRef.current ||
+          (aiAudioEndTimeRef.current > 0 && now < aiAudioEndTimeRef.current + 0.3);
 
         if (isAiActive) {
           if (rms > 0.05) {
@@ -344,44 +353,36 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
           }
         }
 
-        // 3. VAD Noise Gate & Turn Completion Gating:
-        // Noise floor threshold: 0.015. Anything below is treated as ambient background noise.
+        // 3. VAD Noise Gate + Silence Signaling for Gemini server-side VAD.
+        // Gemini detects end-of-turn from the audio stream by seeing a speech→silence boundary.
+        // We MUST send silence frames (zero-PCM) after speech ends so the VAD can trigger.
+        // Without them, Gemini waits forever and never responds after the first turn.
         const SILENCE_THRESHOLD = 0.015;
+        // ~20 frames × 2048 samples / 16000 Hz ≈ 2.5s of silence signal
+        const SILENCE_FRAMES_TO_SEND = 20;
 
         if (rms >= SILENCE_THRESHOLD) {
           // User is actively speaking
           isUserSpeakingRef.current = true;
           silenceFrameCountRef.current = 0;
         } else {
-          // Volume is below speech threshold
           if (isUserSpeakingRef.current) {
-            // User was speaking, now paused/stopped speaking
             silenceFrameCountRef.current += 1;
 
-            // Send up to 3 frames (~380ms) of pure digital silence (all zeroes)
-            // to cleanly signal turn completion to Gemini's server-side VAD
-            if (silenceFrameCountRef.current <= 3) {
+            if (silenceFrameCountRef.current <= SILENCE_FRAMES_TO_SEND) {
+              // Send zero-PCM silence so Gemini's VAD detects speech→silence boundary
               const zeroPcm = new Int16Array(inputData.length);
               const zeroBase64 = btoa(String.fromCharCode(...new Uint8Array(zeroPcm.buffer)));
               if (socketRef.current && socketRef.current.connected) {
                 socketRef.current.emit('user-audio-chunk', zeroBase64);
               }
-              return;
-            } else if (silenceFrameCountRef.current === 4) {
-              // Mark speech ended and notify backend to trigger immediate Gemini turn completion
-              isUserSpeakingRef.current = false;
-              if (socketRef.current && socketRef.current.connected) {
-                socketRef.current.emit('user-speech-end');
-              }
-              return;
             } else {
-              // User is silent, stop sending room noise
-              return;
+              // Enough silence sent — mark speech as ended, stop sending until user speaks again
+              isUserSpeakingRef.current = false;
             }
-          } else {
-            // User is not speaking and silent period has passed; skip sending ambient noise
-            return;
           }
+          // Not speaking and silence already sent — skip sending ambient noise
+          return;
         }
 
         const pcm16 = new Int16Array(inputData.length);
@@ -445,8 +446,10 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
 
       source.onended = () => {
         activeSourcesRef.current = activeSourcesRef.current.filter((s) => s !== source);
-        if (audioContextRef.current && audioContextRef.current.currentTime >= aiAudioEndTimeRef.current - 0.05) {
+        // Reset AI speaking state only when ALL queued audio chunks have finished
+        if (activeSourcesRef.current.length === 0) {
           isAiSpeakingRef.current = false;
+          aiAudioEndTimeRef.current = 0;
         }
       };
     } catch (err) {
@@ -540,12 +543,12 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
                   borderColor: isDragging
                     ? '#818cf8'
                     : uploadError || extractError
-                    ? '#ef4444'
-                    : extractSuccess
-                    ? '#10b981'
-                    : isUploading || isExtracting
-                    ? '#818cf8'
-                    : 'rgba(99, 102, 241, 0.4)',
+                      ? '#ef4444'
+                      : extractSuccess
+                        ? '#10b981'
+                        : isUploading || isExtracting
+                          ? '#818cf8'
+                          : 'rgba(99, 102, 241, 0.4)',
                   backgroundColor: isDragging
                     ? 'rgba(99, 102, 241, 0.12)'
                     : 'rgba(99, 102, 241, 0.03)',
@@ -638,10 +641,10 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
               {isUploading
                 ? 'Uploading Resume...'
                 : isExtracting
-                ? 'Extracting Resume Text...'
-                : !isConnected
-                ? 'Connecting to Server...'
-                : 'Start Live Interview'}
+                  ? 'Extracting Resume Text...'
+                  : !isConnected
+                    ? 'Connecting to Server...'
+                    : 'Start Live Interview'}
             </button>
           </div>
         </div>
