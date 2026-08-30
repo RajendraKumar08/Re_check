@@ -52,7 +52,7 @@ function Register() {
 
       setSuccessMsg("Registration successful! Redirecting to login...")
       setTimeout(() => {
-        window.location.href = '/login'
+        window.location.href = '/'
       }, 1200)
     } catch (error) {
       console.error("Registration error:", error)
