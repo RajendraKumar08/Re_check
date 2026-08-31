@@ -137,41 +137,9 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
 
   const [resumeUrl, setResumeUrl] = useState(null);
 
-  const uploadResume = async (file) => {
-    setIsUploading(true);
-    setUploadError(null);
-    setUploadSuccess(false);
-
-    const formData = new FormData();
-    formData.append('resume', file);
-
-    try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/upload/upload-resume`,
-        formData,
-        {
-          withCredentials: true,
-        }
-      );
-
-      if (response.data) {
-        setResumeUrl(response.data.resumeUrl);
-        setUploadSuccess(true);
-        return true;
-      } else {
-        setUploadError('Could not upload resume.');
-        return false;
-      }
-    } catch (err) {
-      console.error('Error uploading resume:', err);
-      setUploadError(
-        err.response?.data?.error || 'Failed to upload resume.'
-      );
-      return false;
-    } finally {
-      setIsUploading(false);
-    }
-  };
+  // NOTE: Cloudinary upload removed from live interview flow.
+  // The interview only needs extracted resume text, not a cloud URL.
+  // Uploading to Cloudinary caused ETIMEDOUT errors on restricted networks.
 
   // RESUME FILE HANDLERS & AUTOMATIC TEXT EXTRACTION
   const extractResumeText = async (file) => {
@@ -213,18 +181,12 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
   const handleFileSelect = async (file) => {
     if (!file) return;
     setResumeFile(file);
-    setUploadSuccess(false);
     setExtractSuccess(false);
-    setUploadError(null);
     setExtractError(null);
 
-    // 1. Upload resume first (shows uploading loading state)
-    const uploaded = await uploadResume(file);
-
-    // 2. Once uploaded, extract text (shows text extraction loading state, then success message)
-    if (uploaded) {
-      await extractResumeText(file);
-    }
+    // Extract text directly from the file — no Cloudinary upload needed.
+    // The live interview only uses resumeText for the Gemini prompt.
+    await extractResumeText(file);
   };
 
   const handleDragOver = (e) => {
@@ -588,23 +550,7 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
                       </button>
                     </div>
 
-                    {/* Step 1: Uploading Resume Loading State */}
-                    {isUploading && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#818cf8', fontSize: '0.85rem', justifyContent: 'center' }}>
-                        <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                        <span>Uploading resume to cloud...</span>
-                      </div>
-                    )}
-
-                    {/* Step 1 Error */}
-                    {uploadError && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#ef4444', fontSize: '0.85rem', justifyContent: 'center' }}>
-                        <AlertCircle size={16} />
-                        <span>{uploadError}</span>
-                      </div>
-                    )}
-
-                    {/* Step 2: Extracting Text Loading State */}
+                    {/* Extracting Text Loading State */}
                     {isExtracting && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#818cf8', fontSize: '0.85rem', justifyContent: 'center' }}>
                         <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
@@ -635,16 +581,14 @@ export default function LiveInterview({ userId, jobRole, difficulty, resumeText 
             <button
               onClick={startInterview}
               className="start-btn"
-              disabled={!isConnected || isUploading || isExtracting}
+              disabled={!isConnected || isExtracting}
             >
               <Play size={20} />
-              {isUploading
-                ? 'Uploading Resume...'
-                : isExtracting
-                  ? 'Extracting Resume Text...'
-                  : !isConnected
-                    ? 'Connecting to Server...'
-                    : 'Start Live Interview'}
+              {isExtracting
+                ? 'Extracting Resume Text...'
+                : !isConnected
+                  ? 'Connecting to Server...'
+                  : 'Start Live Interview'}
             </button>
           </div>
         </div>
